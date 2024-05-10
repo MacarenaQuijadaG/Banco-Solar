@@ -19,7 +19,6 @@ Lista de software y herramientas, incluyendo versiones, que necesitas para insta
 -  "express": "^4.19.2",
 -  "node": "^18.0.4",
 -  "pg": "^8.11.5",
--  "express": "^4.19.2",
 -  "morgan": "^1.10.0",
         
 
