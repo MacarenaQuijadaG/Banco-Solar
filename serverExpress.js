@@ -1,91 +1,79 @@
-import express from 'express';
+const express = require('express');
+const bodyParser = require('body-parser');
+const { agregarUsuario, obtenerUsuarios, actualizarUsuario, eliminarUsuario, realizarTransferencia, obtenerTransferencias } = require('./config/consultas');
+
 const app = express();
 const PORT = 3000;
+
+app.use(bodyParser.json());
+
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/index.html');
+});
+
+app.post('/usuario', async (req, res) => {
+  const { nombre, balance } = req.body;
+  try {
+    const usuario = await agregarUsuario(nombre, balance);
+    res.status(201).json(usuario);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al agregar usuario' });
+  }
+});
+
+app.get('/usuarios', async (req, res) => {
+  try {
+    const usuarios = await obtenerUsuarios();
+    res.status(200).json(usuarios);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener usuarios' });
+  }
+});
+
+app.put('/usuario', async (req, res) => {
+  const { id, nombre, balance } = req.body;
+  try {
+    const usuario = await actualizarUsuario(id, nombre, balance);
+    res.status(200).json(usuario);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar usuario' });
+  }
+});
+
+app.delete('/usuario', async (req, res) => {
+  const { id } = req.query;
+  try {
+    await eliminarUsuario(id);
+    res.status(204).end();
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar usuario' });
+  }
+});
+
+app.post('/transferencia', async (req, res) => {
+  const { emisor, receptor, monto } = req.body;
+  try {
+    const transferencia = await realizarTransferencia(emisor, receptor, monto);
+    res.status(201).json(transferencia);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al realizar transferencia' });
+  }
+});
+
+app.get('/transferencias', async (req, res) => {
+  try {
+    const transferencias = await obtenerTransferencias();
+    res.status(200).json(transferencias);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener transferencias' });
+  }
+});
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
+});
+
 app.listen(PORT, () => {
-    console.log(`Servidor ${PORT}`);
-});
-import { errores } from './errores/errores.js';
-
-// Importamos funciones de consulta/consulta.js 
-import { agregar, todos, editar, eliminar, transferir, transferencias, saldo } from './config/consultas.js';
-
-// Middleware 
-app.use(express.json());
-
-// devuelve el index.html
-app.get("/", (req, res) => {
-    res.sendFile("index.html", { root: "./" });
-})
-
-//ruta del usuario a crear
-app.post("/usuario", async (req, res) => {
-    const { nombre, balance } = req.body;
-    if (!nombre || !balance) {
-        res.status(400).json({ mensaje: "Debe ingresar todos los datos" });
-    } else {
-            const result = await agregar(nombre, balance);
-            res.send(result);
-    }
-});
-
-// devuelve todos los usuarios
-app.get("/usuarios", async (req, res) => {
-    try {
-        const result = await todos();
-        res.send(result);
-    } catch (error) {
-        res.send(error);
-    }
-});
-
-// ruta que devuelve los modificados
-app.put("/usuario", async (req, res) => {
-    const { id, nombre, balance } = req.body;
-    try {
-        const result = await editar(id, nombre, balance);
-        res.json(result);
-    } catch (error) {
-        res.json(error);
-    }
-});
-
-// Elimina
-app.delete("/usuario", async (req, res) => {
-    const { id } = req.query;
-    try {
-        const result = await eliminar(id);
-        console.log("Respuesta de la función eliminar: ", result);
-        res.json(result);
-    } catch (error) {
-        res.send(error);
-    }
-});
-
-// transferencia 
-app.post("/transferencia", async (req, res) => {
-    const { emisor, receptor, monto } = req.body;
-    if (!emisor ||!receptor ||!monto) {
-        res.status(400).json({ mensaje: "Ingrese todos los datos" });
-    }
-    try {
-        const saldoEmisor = await saldo(emisor);
-        if (saldoEmisor < monto) {
-            return res.status(400).json({ mensaje: "Saldo insufuciente" });
-            //res.send(error);
-        }
-        const result = await transferir(emisor, receptor, monto);
-        res.json(result);
-    } catch (error) {
-        res.json(error);
-    }
-});
-
-// mostras transferencias
-app.get("/transferencias", async (req, res) => {
-    try {
-        const result = await transferencias();
-        res.json(result);
-    } catch (error) {
-        res.json(error);
-    }
+  console.log(`Server is running on http://localhost:${PORT}`);
 });

@@ -1,37 +1,48 @@
-const errores = (error, pool, tabla) => {
-    let status, message;
-
-    switch (error.code) {
-        case '28000':
-            status = 500;
-            message = "El usuario de la Base de datos no existe";
+const errores = (error, status, pool) => {
+    // let status;
+    let message;
+    switch (error) {
+        case '22P02':
+            status = 400;
+            message = "la sintaxis de entrada no es válida para tipo integer";
+            break;
+        case '28P01':
+            status = 400;
+            message = "Autenticación de contraseña falló o no existe el usuario: " + pool.options.user;
+            break;
+        case '42P01':
+            status = 400;
+            message = "No existe la tabla [" + tabla + "] consultada";
             break;
         case '3D000':
-            status = 500;
-            message = "La base de datos no existe ";
+            status = 400;
+            message = "La base de datos [" + pool.options.database + "] no existe";
+            break;
+        case '28000':
+            status = 400;
+            message = "El usuario [" + pool.options.user + "] no existe";
+            break;
+        case '42601':
+            status = 400;
+            message = "Error de Sintaxis en la instrucción";
             break;
         case 'ENOTFOUND':
             status = 500;
-            message = "Error con el host de la conexión a la base de datos"
+            message = "Error en el valor usado como localhost: " + pool.options.host;
             break;
         case 'ECONNREFUSED':
             status = 500;
-            message = "Error con el puerto de la conexión a la base de datos"
-            break;
-        case 'ECONNRESET':
-            status = 500;
-            message = "Conexión reseteada por el servidor de base de datos";
-            break;
-        case '42P01':
-            status = 500;
-            message = "La tabla no existe en la base de datos";
+            message = "Error en el puerto de conexión a la BD, usando: " + pool.options.port;
             break;
         default:
             status = 500;
-            message = "Error genérico del servidor";
+            message = "Error interno del servidor";
             break;
     }
-    return { status, message, code: error.code };
+
+    return { status, error: message };
 };
 
-export { errores };
+
+
+module.exports = {errores};
