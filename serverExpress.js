@@ -1,94 +1,91 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const { 
-  agregarUsuario, 
-  obtenerUsuarios,
-  eliminarUsuario,
-  actualizarUsuario,
-  transferencias,
-  transferencia
-} = require("./config/consultas");
-
+import express from 'express';
 const app = express();
 const PORT = 3000;
-
-app.use(bodyParser.json());
-
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en el puerto ${PORT}`);
+    console.log(`Servidor ${PORT}`);
 });
+import { errores } from './errores/errores.js';
 
-// Ruta para servir el archivo index.html
+// Importamos funciones de consulta/consulta.js 
+import { agregar, todos, editar, eliminar, transferir, transferencias, saldo } from './config/consultas.js';
+
+// Middleware 
+app.use(express.json());
+
+// devuelve el index.html
 app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/index.html");
-});
+    res.sendFile("index.html", { root: "./" });
+})
 
-// Rutas para manipulación de usuarios
+//ruta del usuario a crear
 app.post("/usuario", async (req, res) => {
-  try {
     const { nombre, balance } = req.body;
-    const resultado = await agregarUsuario(nombre, balance);
-    res.status(200).json(resultado);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    if (!nombre || !balance) {
+        res.status(400).json({ mensaje: "Debe ingresar todos los datos" });
+    } else {
+            const result = await agregar(nombre, balance);
+            res.send(result);
+    }
 });
 
+// devuelve todos los usuarios
 app.get("/usuarios", async (req, res) => {
-  try {
-    const resultado = await obtenerUsuarios();
-    res.status(200).json(resultado);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    try {
+        const result = await todos();
+        res.send(result);
+    } catch (error) {
+        res.send(error);
+    }
 });
 
-app.delete('/usuario', async (req, res) => {
-  try {
+// ruta que devuelve los modificados
+app.put("/usuario", async (req, res) => {
+    const { id, nombre, balance } = req.body;
+    try {
+        const result = await editar(id, nombre, balance);
+        res.json(result);
+    } catch (error) {
+        res.json(error);
+    }
+});
+
+// Elimina
+app.delete("/usuario", async (req, res) => {
     const { id } = req.query;
-    const resultado = await eliminarUsuario(id);
-    res.status(200).json(resultado);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    try {
+        const result = await eliminar(id);
+        console.log("Respuesta de la función eliminar: ", result);
+        res.json(result);
+    } catch (error) {
+        res.send(error);
+    }
 });
 
-app.put('/usuario', async (req,res) => {
-  try {
-    const { id } = req.query;
-    const { nombre, balance } = req.body;
-    const resultado = await actualizarUsuario(id, nombre, balance);
-    res.status(200).json(resultado);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Rutas para manejo de transferencias
-
-// nueva trasferencia
+// transferencia 
 app.post("/transferencia", async (req, res) => {
-  try {
     const { emisor, receptor, monto } = req.body;
-    console.log("emisor, receptor, monto: ", emisor, receptor, monto);
-    
-    // realizar la transferencia
-    const resultado = await transferencia(emisor, receptor, monto);
-    
-    res.status(200).json(resultado);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    if (!emisor ||!receptor ||!monto) {
+        res.status(400).json({ mensaje: "Ingrese todos los datos" });
+    }
+    try {
+        const saldoEmisor = await saldo(emisor);
+        if (saldoEmisor < monto) {
+            return res.status(400).json({ mensaje: "Saldo insufuciente" });
+            //res.send(error);
+        }
+        const result = await transferir(emisor, receptor, monto);
+        res.json(result);
+    } catch (error) {
+        res.json(error);
+    }
 });
 
-// desplega todas las transferencias
+// mostras transferencias
 app.get("/transferencias", async (req, res) => {
-  try {
-    // No se necesita req.body aquí ya que es una solicitud GET
-    const resultado = await transferencias();
-    res.status(200).json(resultado);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    try {
+        const result = await transferencias();
+        res.json(result);
+    } catch (error) {
+        res.json(error);
+    }
 });
-

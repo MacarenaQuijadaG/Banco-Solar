@@ -1,117 +1,87 @@
-const { Pool } = require("pg");
+import pkg from 'pg';
+import 'dotenv/config';
+const { Pool } = pkg;
+import { errores } from '../errores/errores.js';
 
 const pool = new Pool({
-  user: "postgres",
-  host: "localhost",
-  password: "desarrollo",
-  database: "bancosolar",
-  port: 5432,
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_DATABASE,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT
 });
-
-const agregarUsuario = async (nombre, balance) => {
-  try {
-    const res = await pool.query(
-      "INSERT INTO usuarios (nombre, balance) VALUES ($1, $2) RETURNING *",
-      [nombre, balance]
-    );
-
-    console.log("Registro agregado:", res.rows[0]);
-    return res.rows[0]; // Devuelve el usuario agregado
-  } catch (error) {
-    console.error("Error al agregar usuario:", error);
-    throw error;
-  }
-};
-
-const obtenerUsuarios = async () => {
-  try {
-    const res = await pool.query("SELECT * FROM usuarios");
-    console.log("Usuarios registrados:", res.rows);
-    return res.rows;
-  } catch (error) {
-    console.error("Error al obtener usuarios:", error);
-    throw error;
-  }
-};
-
-const eliminarUsuario = async (id) => {
-  try {
-    const res = await pool.query(
-      "DELETE FROM usuarios WHERE id = $1 RETURNING *",
-      [id]
-    );
-    console.log("Usuario eliminado:", res.rows[0]);
-    return res.rows[0]; // Devuelve el usuario eliminado
-  } catch (error) {
-    console.error("Error al eliminar usuario:", error);
-    throw error;
-  }
-};
-
-const actualizarUsuario = async (id, nombre, balance) => {
-  try {
-    const res = await pool.query(
-      "UPDATE usuarios SET nombre = $1, balance = $2 WHERE id = $3 RETURNING *",
-      [nombre, balance, id]
-    );
-
-    if (res.rowCount > 0) {
-      console.log("Usuario actualizado:", res.rows[0]);
-      return res.rows[0]; // Devuelve el usuario actualizado
-    } else {
-      throw new Error("No se encontró el usuario para actualizar");
+async function agregar(nombre, balance) {
+    const tabla = "usuarios";
+    console.log("Valores recibidos: ", nombre, balance);
+    try {
+        const result = await pool.query({
+            text: `INSERT INTO ${tabla} (nombre, balance) VALUES ($1, $2) RETURNING *`,
+            values: [nombre, balance]
+        });
+        console.log("Registro agregado: ", result.rows[0]);
+        return result.rows[0];
+    } catch (error) {
+        return errores(error, pool, tabla);
     }
-  } catch (error) {
-    console.error("Error al actualizar usuario:", error);
-    throw error;
-  }
 };
 
-const transferencia = async (emisor, receptor, monto) => {
-  try {
-    await pool.query("BEGIN");
-    const descontar = await pool.query(
-      "UPDATE usuarios SET balance = balance - $1 WHERE id = $2 RETURNING *",
-      [monto, emisor]
-    );
-
-    const acreditar = await pool.query(
-      "UPDATE usuarios SET balance = balance + $1 WHERE id = $2 RETURNING *",
-      [monto, receptor]
-    );
-
-    const actualizarUsuarios = await pool.query(
-      "INSERT INTO transferencias (emisor, receptor, monto, fecha) VALUES ($1, $2, $3, CURRENT_TIMESTAMP) RETURNING *",
-      [emisor, receptor, monto]
-    );
-
-    await pool.query("COMMIT");
-    console.log("Transferencia realizada con éxito");
-    await actualizarUsuario(emisor, receptor, monto);
-  } catch (error) {
-    await pool.query("ROLLBACK");
-    console.log("Error en la transferencia:", error.message);
-    throw { error: error.message };
-  }
-};
-
-const transferencias = async (req, res) => {
-  try {
-    const result = await pool.query("SELECT * FROM transferencias");
-    console.log("Transacciones registradas:", result.rows);
+async function todos() {
+    const result = await pool.query('SELECT * FROM usuarios');
     return result.rows;
-  } catch (error) {
-    console.log("Error al obtener las transferencias:", error.message);
-    throw { error: error.message };
-  }
+}
+
+async function editar (id, nombre, balance) {
+    try {
+        const result = await pool.query('UPDATE usuarios SET nombre = $1, balance = $2 WHERE id = $3 RETURNING *', [nombre, balance, id]);
+        return result.rows[0];
+    } catch (error) {
+        return errores(error, pool, tabla);
+    }
 };
 
-module.exports = {
-  pool,
-  agregarUsuario,
-  obtenerUsuarios,
-  eliminarUsuario,
-  actualizarUsuario,
-  transferencia,
-  transferencias,
+async function eliminar(id) {
+    try {
+        const result = await pool.query("DELETE FROM usuarios WHERE id = $1 RETURNING *", [id]);
+        if (result.rows.length > 0) {
+            return { mensaje: `El usuario con ID ${id} se ha eliminado` };
+        } else {
+            return { mensaje: 'El usuario no se eliminó correctamente o no existe.' };
+        }
+    } catch (error) {
+        return errores(error, pool, tabla);
+    }
+}
+
+async function transferir (emisor, receptor, monto) {
+    const saldoEmisor = await saldo(emisor);
+    try {
+        await pool.query('BEGIN');
+
+        await pool.query('UPDATE usuarios SET balance = balance - $1 WHERE id = $2', [monto, emisor]);
+
+        await pool.query('UPDATE usuarios SET balance = balance + $1 WHERE id = $2', [monto, receptor]);
+
+        const fecha = new Date();
+
+        await pool.query('INSERT INTO transferencias (emisor, receptor, monto, fecha) VALUES ($1, $2, $3, $4)', [emisor, receptor, monto, fecha]);
+
+        await pool.query('COMMIT');
+        return { mensaje: 'Transferencia exitosa' };
+    } catch (error) {
+        await pool.query('ROLLBACK');
+        throw error
+    }
 };
+
+async function transferencias () {
+    const idPorNombre = `SELECT t.fecha, t.monto, e.nombre AS emisor, r.nombre AS receptor FROM transferencias t INNER JOIN usuarios e ON t.emisor = e.id INNER JOIN usuarios r ON t.receptor = r.id`;
+    const result = await pool.query(idPorNombre);
+    return result.rows;
+}
+
+async function saldo (id) {
+    const { rows } = await pool.query("SELECT balance FROM usuarios WHERE id = $1", [id]);
+    return rows[0].balance;
+}
+
+export { agregar, todos, editar, eliminar, transferir, transferencias, saldo };
