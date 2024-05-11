@@ -7,7 +7,7 @@ const {
   actualizarUsuario,
   transferencias,
   transferencia
- } = require("./config/consultas");
+} = require("./config/consultas");
 
 const app = express();
 const PORT = 3000;
@@ -72,7 +72,7 @@ app.post("/transferencia", async (req, res) => {
     const { emisor, receptor, monto } = req.body;
     console.log("emisor, receptor, monto: ", emisor, receptor, monto);
     
-    // Lógica para realizar la transferencia
+    // realizar la transferencia
     const resultado = await transferencia(emisor, receptor, monto);
     
     res.status(200).json(resultado);
@@ -91,3 +91,4 @@ app.get("/transferencias", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
