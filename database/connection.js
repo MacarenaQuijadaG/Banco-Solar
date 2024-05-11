@@ -5,7 +5,7 @@ dotenv.config();
 
 const {HOST, DATABASE, USER, PASSWORD, PORT } = process.env
 
-// cambia los datos de acuerdo a tu configuracion de postgres
+// obtiene los valores de postgres desde el .env
 export const pool = new Pool({
   host: HOST,
   database: DATABASE,
@@ -14,8 +14,6 @@ export const pool = new Pool({
   port: PORT,
   allowExitOnIdle: true,
 });
-
-//console.log("Valor de pool: ", pool);
 
 try {
   console.log("Database connected");
