@@ -20,8 +20,9 @@ Lista de software y herramientas, incluyendo versiones, que necesitas para insta
 -  "node": "^18.0.4",
 -  "pg": "^8.11.5",
 -  "morgan": "^1.10.0",
-        
-
+-  "axios": "^1.6.8",
+-  "body-parser": "^1.20.2",
+-  "dotenv": "^16.4.5",
 
 ### Instalación 🔧
 
