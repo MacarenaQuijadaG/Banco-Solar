@@ -16,13 +16,13 @@ Estas instrucciones te guiarán para obtener una copia de este proyecto en funci
 
 Lista de software y herramientas, incluyendo versiones, que necesitas para instalar y ejecutar este proyecto:
 
--  "express": "^4.19.2",
--  "node": "^18.0.4",
--  "pg": "^8.11.5",
--  "morgan": "^1.10.0",
--  "axios": "^1.6.8",
--  "body-parser": "^1.20.2",
--  "dotenv": "^16.4.5",
+-  expres :4.19.2,
+-  node: 18.0.4,
+-  pg: 8.11.5,
+-  morgan: 1.10.0,
+-  axios: 1.6.8,
+-  body-parser:1.20.2,
+-  dotenv: 16.4.5,
 
 ### Instalación 🔧
 
